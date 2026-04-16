@@ -1,0 +1,58 @@
+name: CD — Deploy to Server
+
+on:
+  push:
+    branches: [main]
+
+# Only one deployment at a time
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: []   # no dependency — CI is separate; gate with branch protection rules
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Install SSH key ──────────────────────────────────────────────────────
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      # ── Sync source code to server ───────────────────────────────────────────
+      - name: Sync files
+        run: |
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='backend/.env' \
+            --exclude='frontend/.env*' \
+            --exclude='backend/dist' \
+            --exclude='frontend/.next' \
+            -e "ssh -p ${{ secrets.SSH_PORT || 22 }}" \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
+
+      # ── Build & restart on server ────────────────────────────────────────────
+      - name: Build & restart services
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || 22 }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && bash deploy.sh"
+
+      # ── Health check ─────────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 15
+          curl --fail --silent --max-time 10 \
+            "http://${{ secrets.SSH_HOST }}:${{ secrets.BACKEND_PORT || 5000 }}/api/health" \
+            || (echo "Health check failed" && exit 1)

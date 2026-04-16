@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String                    @id @default(uuid())
+  email            String                    @unique
+  passwordHash     String
+  name             String
+  avatarUrl        String?
+  bio              String?
+  role             UserRole                  @default(USER)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  comments         Comment[]
+  conversations ConversationParticipant[]
+  listings      Listing[]
+  messages      Message[]
+  posts         Post[]
+  postLikes     PostLike[]
+  activities    UserBookActivity[]
+  library       UserLibrary[]
+}
+
+model Book {
+  id                  String             @id @default(uuid())
+  externalId          String?            @unique
+  title               String
+  description         String?
+  thumbnailUrl        String?
+  publishedDate       DateTime?
+  language            String
+  externalRating      Float?
+  externalRatingCount Int?
+  detailFetched       Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  summaries           AiSummary[]
+  authors             BookAuthor[]
+  categories          BookCategory[]
+  listings            Listing[]
+  posts               Post[]
+  activities          UserBookActivity[]
+  library             UserLibrary[]
+}
+
+model Author {
+  id        String       @id @default(uuid())
+  name      String
+  createdAt DateTime     @default(now())
+  books     BookAuthor[]
+}
+
+model BookAuthor {
+  bookId   String
+  authorId String
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, authorId])
+}
+
+model Category {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  createdAt DateTime       @default(now())
+  books     BookCategory[]
+}
+
+model BookCategory {
+  bookId     String
+  categoryId String
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, categoryId])
+}
+
+model Listing {
+  id               String         @id @default(uuid())
+  userId           String
+  bookId           String
+  type             ListingType
+  price            Float?
+  rentDurationDays Int?
+  condition        String
+  location         String
+  status           ListingStatus  @default(ACTIVE)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  photoBase64      String?
+  conversations    Conversation[]
+  book             Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  userId    String
+  bookId    String?
+  content   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  comments  Comment[]
+  book      Book?      @relation(fields: [bookId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes     PostLike[]
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  postId    String
+  userId    String
+  parentId  String?
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  listingId    String?
+  createdAt    DateTime                  @default(now())
+  listing      Listing?                  @relation(fields: [listingId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model UserBookActivity {
+  id         String       @id @default(uuid())
+  userId     String
+  bookId     String
+  actionType ActivityType
+  createdAt  DateTime     @default(now())
+  book       Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiSummary {
+  id          String      @id @default(uuid())
+  bookId      String
+  summaryType SummaryType
+  content     String
+  createdAt   DateTime    @default(now())
+  book        Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+
+model UserLibrary {
+  id        String   @id @default(uuid())
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ListingType {
+  SELL
+  RENT
+  EXCHANGE
+}
+
+enum ListingStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum ActivityType {
+  SEARCH
+  LISTING_CREATE
+  AI_QUESTION
+  POST_LIKE
+}
+
+enum SummaryType {
+  OVERVIEW
+  ACADEMIC
+  SIMPLIFIED
+}
