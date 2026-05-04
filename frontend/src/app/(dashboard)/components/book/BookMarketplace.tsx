@@ -13,8 +13,8 @@ interface Listing {
   location: string
   rentDurationDays: number | null
   photoBase64: string | null
-  book: { externalId: string; title: string; thumbnailUrl: string | null }
-  user: { id: string; name: string }
+  book?: { externalId: string | null; title: string; thumbnailUrl: string | null }
+  user?: { id: string; name: string }
 }
 
 export function BookMarketplace({ bookId }: { bookId: string }) {

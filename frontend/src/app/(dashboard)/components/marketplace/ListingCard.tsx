@@ -14,8 +14,8 @@ interface Listing {
   location: string
   rentDurationDays: number | null
   photoBase64: string | null
-  book: { externalId: string; title: string; thumbnailUrl: string | null }
-  user: { id: string; name: string }
+  book?: { externalId: string | null; title: string; thumbnailUrl: string | null }
+  user?: { id: string; name: string }
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -36,12 +36,17 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [closed, setClosed] = useState(false)
+  const book = listing.book
+  const seller = listing.user
+  const title = book?.title ?? "Unknown book"
+  const cover = listing.photoBase64 ?? book?.thumbnailUrl ?? null
 
   const handleContact = async () => {
+    if (!seller) return
     setLoading(true)
     try {
       const conv = await api.post<{ id: string }>("/api/messages/start", {
-        otherUserId: listing.user.id,
+        otherUserId: seller.id,
         listingId: listing.id,
       })
       router.push(`/messages?c=${conv.id}`)
@@ -66,22 +71,18 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <div className="rounded-xl border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition">
-      {listing.book.externalId ? (
-        <Link href={`/book/${listing.book.externalId}`} className="block aspect-[3/4] bg-gray-200 dark:bg-slate-700">
-          {listing.photoBase64 ? (
-            <img src={listing.photoBase64} alt={listing.book.title} className="w-full h-full object-cover" />
-          ) : listing.book.thumbnailUrl ? (
-            <img src={listing.book.thumbnailUrl} alt={listing.book.title} className="w-full h-full object-cover" />
+      {book?.externalId ? (
+        <Link href={`/book/${book.externalId}`} className="block aspect-[3/4] bg-gray-200 dark:bg-slate-700">
+          {cover ? (
+            <img src={cover} alt={title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No cover</div>
           )}
         </Link>
       ) : (
         <div className="aspect-[3/4] bg-gray-200 dark:bg-slate-700">
-          {listing.photoBase64 ? (
-            <img src={listing.photoBase64} alt={listing.book.title} className="w-full h-full object-cover" />
-          ) : listing.book.thumbnailUrl ? (
-            <img src={listing.book.thumbnailUrl} alt={listing.book.title} className="w-full h-full object-cover" />
+          {cover ? (
+            <img src={cover} alt={title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No cover</div>
           )}
@@ -90,11 +91,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="p-4 space-y-2">
         <div className="flex justify-between">
           <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-1">
-            {listing.book.title}
+            {title}
           </h3>
           <span className="text-xs text-gray-500">{TYPE_LABEL[listing.type]}</span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{listing.user.name}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{seller?.name ?? "Unknown seller"}</p>
         <div className="flex justify-between text-xs">
           <span className="text-gray-600 dark:text-gray-400">{listing.condition}</span>
           <span className="font-semibold text-gray-800 dark:text-gray-100">
@@ -102,7 +103,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           </span>
         </div>
         <p className="text-xs text-gray-500">Байршил:{listing.location}</p>
-        {user && user.id !== listing.user.id && (
+        {user && seller && user.id !== seller.id && (
           <button
             onClick={handleContact}
             disabled={loading}
@@ -111,7 +112,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {loading ? "Уншиж байна..." : "Холбоо барих"}
           </button>
         )}
-        {user && user.id === listing.user.id && (
+        {user && seller && user.id === seller.id && (
           <button
             onClick={handleClose}
             disabled={loading}

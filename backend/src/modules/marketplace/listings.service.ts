@@ -90,7 +90,15 @@ export class ListingsService {
         user: {
           select: {
             id: true,
-            name: true
+            name: true,
+            avatarUrl: true
+          }
+        },
+        book: {
+          select: {
+            externalId: true,
+            title: true,
+            thumbnailUrl: true
           }
         }
       }
