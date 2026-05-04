@@ -11,9 +11,14 @@ interface AuthSocket extends Socket {
 }
 
 export function initSocket(httpServer: HttpServer) {
+  const allowedOrigin = (process.env.FRONTEND_URL ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: allowedOrigin,
       credentials: true,
     },
   })

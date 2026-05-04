@@ -50,4 +50,11 @@ export class LikesService {
 
   }
 
+  static async isLiked(userId: string, postId: string) {
+    const like = await prisma.postLike.findUnique({
+      where: { postId_userId: { postId, userId } }
+    })
+    return !!like
+  }
+
 }

@@ -12,11 +12,12 @@ interface Message {
 
 interface Props {
   recipientName: string
+  recipientAvatar: string | null
   messages: Message[]
   currentUserId: string
 }
 
-export function ChatWindow({ recipientName, messages, currentUserId }: Props) {
+export function ChatWindow({ recipientName, recipientAvatar, messages, currentUserId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const [isTyping, setIsTyping] = useState(false)
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -53,9 +54,13 @@ export function ChatWindow({ recipientName, messages, currentUserId }: Props) {
   return (
     <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 min-h-0">
       <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center gap-3 flex-shrink-0">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-          {recipientName.slice(0, 2).toUpperCase()}
-        </div>
+        {recipientAvatar ? (
+          <img src={recipientAvatar} alt={recipientName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            {recipientName.slice(0, 2).toUpperCase()}
+          </div>
+        )}
         <div>
           <h2 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
             {recipientName}

@@ -56,13 +56,13 @@ export const createCommentSchema = z.object({
 // ── Marketplace ───────────────────────────────────────────────────────────────
 export const createListingSchema = z.object({
   bookTitle:        safeText(1, 300),
-  bookExternalId:   z.string().max(128).optional(),
+  bookExternalId:   z.string().max(128).nullable().optional(),
   type:             z.enum(["SELL", "RENT", "EXCHANGE"]),
-  price:            z.number().min(0).max(100_000_000).optional(),
-  rentDurationDays: z.number().int().min(1).max(365).optional(),
+  price:            z.number().min(0).max(100_000_000).nullable().optional(),
+  rentDurationDays: z.number().int().min(1).max(365).nullable().optional(),
   condition:        safeText(1, 100),
   location:         safeText(1, 200),
-  photoBase64:      z.string().max(7_000_000).optional(), // ~5MB decoded
+  photoBase64:      z.string().max(7_000_000).nullable().optional(),
 })
 
 // ── AI ────────────────────────────────────────────────────────────────────────

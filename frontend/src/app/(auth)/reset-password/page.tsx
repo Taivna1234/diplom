@@ -4,6 +4,7 @@ import { useState, use } from "react"
 import { Sparkles, Lock } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { API_BASE } from "@/lib/api"
 
 export default function ResetPasswordPage({
   searchParams,
@@ -27,7 +28,7 @@ export default function ResetPasswordPage({
     setError("")
     setLoading(true)
     try {
-      const res = await fetch("http://localhost:5000/api/auth/reset-password", {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword }),

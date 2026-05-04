@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { api } from "@/lib/api"
@@ -65,17 +66,27 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <div className="rounded-xl border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition">
-      <div className="aspect-[3/4] bg-gray-200 dark:bg-slate-700">
-        {listing.photoBase64 ? (
-          <img src={listing.photoBase64} alt={listing.book.title} className="w-full h-full object-cover" />
-        ) : listing.book.thumbnailUrl ? (
-          <img src={listing.book.thumbnailUrl} alt={listing.book.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-            No cover
-          </div>
-        )}
-      </div>
+      {listing.book.externalId ? (
+        <Link href={`/book/${listing.book.externalId}`} className="block aspect-[3/4] bg-gray-200 dark:bg-slate-700">
+          {listing.photoBase64 ? (
+            <img src={listing.photoBase64} alt={listing.book.title} className="w-full h-full object-cover" />
+          ) : listing.book.thumbnailUrl ? (
+            <img src={listing.book.thumbnailUrl} alt={listing.book.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No cover</div>
+          )}
+        </Link>
+      ) : (
+        <div className="aspect-[3/4] bg-gray-200 dark:bg-slate-700">
+          {listing.photoBase64 ? (
+            <img src={listing.photoBase64} alt={listing.book.title} className="w-full h-full object-cover" />
+          ) : listing.book.thumbnailUrl ? (
+            <img src={listing.book.thumbnailUrl} alt={listing.book.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No cover</div>
+          )}
+        </div>
+      )}
       <div className="p-4 space-y-2">
         <div className="flex justify-between">
           <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-1">

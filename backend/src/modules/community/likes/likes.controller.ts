@@ -57,4 +57,22 @@ export class LikesController {
 
   }
 
+  static async status(req: Request, res: Response) {
+
+    try {
+
+      const userId = (req as any).user.userId
+      const { postId } = req.params
+
+      const liked = await LikesService.isLiked(userId, postId as string)
+
+      res.json({ liked })
+
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ message: "Failed to fetch like status" })
+    }
+
+  }
+
 }

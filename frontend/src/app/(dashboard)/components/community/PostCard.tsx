@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { MessageSquare, BookOpen } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LikeButton } from "./LikeButton"
 import { api } from "@/lib/api"
@@ -43,16 +44,11 @@ function initials(name: string) {
 
 function BookCover({ book }: { book: Post["book"] }) {
   if (!book) return null
-  return (
+  const inner = (
     <div className="flex gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-700 mb-4">
-      {/* Cover — always shown, placeholder if no image */}
       <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 dark:bg-slate-600 flex-shrink-0 flex items-center justify-center">
         {book.thumbnailUrl ? (
-          <img
-            src={book.thumbnailUrl}
-            alt={book.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={book.thumbnailUrl} alt={book.title} className="w-full h-full object-cover" />
         ) : (
           <BookOpen className="w-5 h-5 text-gray-400 dark:text-gray-500" />
         )}
@@ -64,6 +60,9 @@ function BookCover({ book }: { book: Post["book"] }) {
       </div>
     </div>
   )
+  return book.externalId ? (
+    <Link href={`/book/${book.externalId}`}>{inner}</Link>
+  ) : inner
 }
 
 export function PostCard({ post }: { post: Post }) {
@@ -76,6 +75,9 @@ export function PostCard({ post }: { post: Post }) {
   const [replyText, setReplyText] = useState("")
   const { user } = useAuth()
   const router = useRouter()
+
+  // For own posts use the live context avatar so it reflects profile changes immediately
+  const postAvatar = user?.id === post.user.id ? user?.avatarUrl : post.user.avatarUrl
 
   const goToMessage = async () => {
     if (!user || user.id === post.user.id) return
@@ -133,9 +135,15 @@ export function PostCard({ post }: { post: Post }) {
         <button
           onClick={goToMessage}
           disabled={!user || user.id === post.user.id}
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 disabled:cursor-default hover:opacity-80 transition"
+          className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 disabled:cursor-default hover:opacity-80 transition"
         >
-          {initials(post.user.name)}
+          {postAvatar ? (
+            <img src={postAvatar} alt={post.user.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold text-sm">
+              {initials(post.user.name)}
+            </div>
+          )}
         </button>
         <div>
           <button
@@ -245,9 +253,13 @@ export function PostCard({ post }: { post: Post }) {
           {/* Comment input */}
           {user && (
             <div className="flex gap-3 pt-1">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                {initials(user.name)}
-              </div>
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                  {initials(user.name)}
+                </div>
+              )}
               <div className="flex-1 flex gap-2">
                 <input
                   value={commentText}

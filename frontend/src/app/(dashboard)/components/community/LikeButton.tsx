@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Heart } from "lucide-react"
 import { api } from "@/lib/api"
+import { useAuth } from "@/context/AuthContext"
 
 interface Props {
   postId: string
@@ -10,8 +11,16 @@ interface Props {
 }
 
 export function LikeButton({ postId, initialCount }: Props) {
+  const { user } = useAuth()
   const [liked, setLiked] = useState(false)
   const [count, setCount] = useState(initialCount)
+
+  useEffect(() => {
+    if (!user) return
+    api.get<{ liked: boolean }>(`/api/likes/${postId}/status`)
+      .then((data) => setLiked(data.liked))
+      .catch(() => {})
+  }, [postId, user])
 
   const toggle = async () => {
     try {

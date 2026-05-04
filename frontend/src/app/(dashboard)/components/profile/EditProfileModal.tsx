@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function EditProfileModal({ onClose }: Props) {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [name, setName] = useState(user?.name ?? "")
   const [email, setEmail] = useState(user?.email ?? "")
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.avatarUrl ?? "")
@@ -43,6 +43,7 @@ export function EditProfileModal({ onClose }: Props) {
     setProfileLoading(true)
     try {
       await api.put("/api/users/profile", { name, email, avatarUrl: avatarUrl || undefined })
+      updateUser({ name, email, avatarUrl: avatarUrl || null })
       setProfileSuccess(true)
     } catch (err: any) {
       setProfileError(err.message || "Алдаа гарлаа")

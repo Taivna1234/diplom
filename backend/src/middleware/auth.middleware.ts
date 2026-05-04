@@ -1,20 +1,12 @@
 import { Request, Response, NextFunction } from "express"
 import jwt from "jsonwebtoken"
+import { UserRole } from "@prisma/client"
 
 interface JwtPayload {
   userId: string
-  role: string
+  role: UserRole
   iat: number
   exp: number
-}
-
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload
-    }
-  }
 }
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {

@@ -23,7 +23,6 @@ export class BooksService {
       }
     }
 
-    // Full-text search in DB cache — only real Google books (have externalId)
     let cached = await prisma.$queryRaw<any[]>`
       SELECT * FROM "Book"
       WHERE "externalId" IS NOT NULL
@@ -36,7 +35,6 @@ export class BooksService {
       LIMIT 10
     `
 
-    // Fallback: word-split OR match
     if (cached.length === 0) {
       const words = searchQuery.split(/\s+/).filter((w: string) => w.length > 2)
       if (words.length > 0) {

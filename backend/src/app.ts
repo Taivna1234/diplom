@@ -20,12 +20,15 @@ import { errorHandler }     from "./middleware/errorHandler"
 
 const app = express()
 
-// ── Security headers ─────────────────────────────────────────────────────────
+// ── Security headers 
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // allow images from other origins
+  crossOriginResourcePolicy: { policy: "cross-origin" }, 
 }))
 
-const allowedOrigin = process.env.FRONTEND_URL ?? "http://localhost:3000"
+const allowedOrigin = (process.env.FRONTEND_URL ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean)
 app.use(cors({ origin: allowedOrigin, credentials: true }))
 
 app.use(express.json({ limit: "10mb" }))
@@ -51,7 +54,7 @@ app.use("/api/recommendations", recommendationRoutes)
 app.use("/api/users",           usersRoutes)
 app.use("/api/library",         libraryRoutes)
 
-// ── Global error handler ─────────────────────────────────────────────────────
+
 app.use(errorHandler)
 
 export default app

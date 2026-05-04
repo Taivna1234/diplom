@@ -5,6 +5,7 @@ import { BookGrid } from "../components/books/BookGrid"
 import { TrendingBooks } from "../components/dashboard/TrendingBooks"
 import { PersonalRecommendations } from "../components/dashboard/PersonalRecommendations"
 import { RecentActivity } from "../components/dashboard/RecentActivity"
+import { API_BASE } from "@/lib/api"
 
 export default function DiscoverPage({
   searchParams,
@@ -20,7 +21,7 @@ export default function DiscoverPage({
     if (!search) return
 
     fetch(
-      `http://localhost:5000/api/books/search?q=${encodeURIComponent(search)}`
+      `${API_BASE}/api/books/search?q=${encodeURIComponent(search)}`
     )
       .then((res) => res.json())
       .then((data) => setResults(Array.isArray(data) ? data : (data.books ?? data.results ?? [])))

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { Suspense, useEffect, useState, useCallback, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { getSocket } from "@/lib/socket"
@@ -11,7 +11,7 @@ import { MessageInput } from "../components/messages/MessageInput"
 
 interface Conversation {
   id: string
-  participants: { user: { id: string; name: string } }[]
+  participants: { user: { id: string; name: string; avatarUrl: string | null } }[]
   messages: { content: string }[]
 }
 
@@ -22,7 +22,7 @@ interface Message {
   createdAt?: string
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -114,10 +114,12 @@ export default function MessagesPage() {
   }
 
   const selectedConv = conversations.find((c) => c.id === selectedId)
-  const recipientName =
+  const recipient =
     selectedConv && user
-      ? selectedConv.participants.find((p) => p.user.id !== user.id)?.user.name ?? "Unknown"
-      : ""
+      ? selectedConv.participants.find((p) => p.user.id !== user.id)?.user
+      : undefined
+  const recipientName = recipient?.name ?? ""
+  const recipientAvatar = recipient?.avatarUrl ?? null
 
   return (
     <div className="h-[calc(100vh-88px)] flex overflow-hidden">
@@ -145,6 +147,7 @@ export default function MessagesPage() {
             </div>
             <ChatWindow
               recipientName={recipientName}
+              recipientAvatar={recipientAvatar}
               messages={messages}
               currentUserId={user.id}
             />
@@ -157,5 +160,13 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesContent />
+    </Suspense>
   )
 }

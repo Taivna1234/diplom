@@ -5,7 +5,7 @@ export class LibraryController {
 
   static async add(req: Request, res: Response) {
     try {
-      const { bookId } = req.params
+      const bookId = String(req.params.bookId)
       await LibraryService.addBook(req.user!.userId, bookId)
       res.json({ saved: true })
     } catch (err: any) {
@@ -15,7 +15,7 @@ export class LibraryController {
 
   static async remove(req: Request, res: Response) {
     try {
-      const { bookId } = req.params
+      const bookId = String(req.params.bookId)
       await LibraryService.removeBook(req.user!.userId, bookId)
       res.json({ saved: false })
     } catch {
@@ -25,7 +25,7 @@ export class LibraryController {
 
   static async status(req: Request, res: Response) {
     try {
-      const { bookId } = req.params
+      const bookId = String(req.params.bookId)
       const saved = await LibraryService.isInLibrary(req.user!.userId, bookId)
       res.json({ saved })
     } catch {

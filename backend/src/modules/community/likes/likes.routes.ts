@@ -8,6 +8,8 @@ router.post("/:postId", authMiddleware, LikesController.like)
 
 router.delete("/:postId", authMiddleware, LikesController.unlike)
 
+router.get("/:postId/status", authMiddleware, LikesController.status)
+
 router.get("/:postId", LikesController.count)
 
 export default router

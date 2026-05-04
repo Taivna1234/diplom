@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Plus, X } from "lucide-react"
-import { api } from "@/lib/api"
+import { API_BASE, api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 
 interface Props {
@@ -44,7 +44,7 @@ export function CreatePost({ onCreated, preselectedBook }: Props) {
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     searchTimeout.current = setTimeout(() => {
       fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/books/search?q=${encodeURIComponent(searchQuery)}`,
+        `${API_BASE}/api/books/search?q=${encodeURIComponent(searchQuery)}`,
         { credentials: "include" }
       )
         .then((r) => r.json())
@@ -75,9 +75,13 @@ export function CreatePost({ onCreated, preselectedBook }: Props) {
   return (
     <div className="rounded-2xl p-6 border bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       <div className="flex gap-4">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-          {user ? initials(user.name) : "?"}
-        </div>
+        {user?.avatarUrl ? (
+          <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            {user ? initials(user.name) : "?"}
+          </div>
+        )}
 
         <div className="flex-1 space-y-4">
           <textarea

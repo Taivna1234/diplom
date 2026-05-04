@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react"
 import { MessageSquare, ShoppingBag, Sparkles, BookOpen, BookMarked, Check } from "lucide-react"
 import { BookDiscussion } from "../../components/book/BookDiscussion"
 import { BookMarketplace } from "../../components/book/BookMarketplace"
-import { api } from "@/lib/api"
+import { API_BASE, api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 
 type TabType = "overview" | "ai" | "discussion" | "marketplace"
@@ -46,7 +46,7 @@ export default function BookDetailPage({
   const [summaryLoading, setSummaryLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/books/${id}?lang=mn`, { credentials: "include" })
+    fetch(`${API_BASE}/api/books/${id}?lang=mn`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setBook(data))
       .catch(() => {})

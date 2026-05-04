@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { X } from "lucide-react"
-import { api } from "@/lib/api"
+import { API_BASE, api } from "@/lib/api"
 
 interface Props {
   onClose: () => void
@@ -41,7 +41,7 @@ export function CreateListingModal({ onClose, onCreated }: Props) {
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     searchTimeout.current = setTimeout(() => {
       fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/books/search?q=${encodeURIComponent(bookTitle)}`,
+        `${API_BASE}/api/books/search?q=${encodeURIComponent(bookTitle)}`,
         { credentials: "include" }
       )
         .then((r) => r.json())

@@ -5,7 +5,7 @@ import { useState } from "react"
 
 interface Conversation {
   id: string
-  participants: { user: { id: string; name: string } }[]
+  participants: { user: { id: string; name: string; avatarUrl: string | null } }[]
   messages: { content: string }[]
 }
 
@@ -21,6 +21,7 @@ function otherParticipant(conv: Conversation, currentUserId: string) {
     conv.participants.find((p) => p.user.id !== currentUserId)?.user ?? {
       id: "",
       name: "Unknown",
+      avatarUrl: null,
     }
   )
 }
@@ -75,9 +76,13 @@ export function ConversationList({
                   : "hover:bg-gray-50 dark:hover:bg-slate-700"
               }`}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                {initials(other.name)}
-              </div>
+              {other.avatarUrl ? (
+                <img src={other.avatarUrl} alt={other.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                  {initials(other.name)}
+                </div>
+              )}
               <div className="flex-1 text-left min-w-0">
                 <h3 className="font-semibold text-gray-800 dark:text-gray-100 truncate">
                   {other.name}

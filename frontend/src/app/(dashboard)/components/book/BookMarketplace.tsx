@@ -12,6 +12,7 @@ interface Listing {
   price: number | null
   location: string
   rentDurationDays: number | null
+  photoBase64: string | null
   book: { externalId: string; title: string; thumbnailUrl: string | null }
   user: { id: string; name: string }
 }
