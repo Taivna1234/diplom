@@ -1,10 +1,21 @@
 import { Request, Response } from "express"
+import type { CookieOptions } from "express"
 import { PrismaClient } from "@prisma/client"
 import { AuthService } from "./auth.service"
 import { generateToken } from "../../utils/jwt"
 
 const prisma = new PrismaClient()
 const authService = new AuthService()
+
+function authCookieOptions(): CookieOptions {
+  const isProduction = process.env.NODE_ENV === "production"
+
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
+  }
+}
 
 export class AuthController {
 
@@ -13,6 +24,8 @@ export class AuthController {
 
       const { name, email, password } = req.body
       const user = await authService.register(name, email, password)
+      const token = generateToken(user.id, user.role)
+      res.cookie("token", token, authCookieOptions())
       res.status(201).json({
         id: user.id,
         email: user.email,
@@ -31,11 +44,7 @@ export class AuthController {
       const { email, password } = req.body
       const user = await authService.login(email, password)
       const token = generateToken(user.id, user.role)
-      res.cookie("token", token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: false
-      })
+      res.cookie("token", token, authCookieOptions())
       res.json({
         id: user.id,
         email: user.email,
@@ -49,7 +58,7 @@ export class AuthController {
   }
 
   async logout(req: Request, res: Response) {
-    res.clearCookie("token", { httpOnly: true, sameSite: "lax", secure: false })
+    res.clearCookie("token", authCookieOptions())
     res.json({ message: "Logged out" })
   }
 

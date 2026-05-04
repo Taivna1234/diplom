@@ -25,7 +25,7 @@ export function SignupForm() {
     setLoading(true)
     try {
       await signup(name, email, password)
-      router.push("/login")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(err.message || "Бүртгэхэд алдаа гарлаа")
     } finally {
