@@ -15,9 +15,11 @@ import {
   LogOut,
   Menu,
   X,
+  BookPlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AIAssistantModal } from "../ai/AIAssistantModal";
+import { AddBookModal } from "../books/AddBookModal";
 import { useAuth } from "@/context/AuthContext";
 
 export function DashboardLayout({
@@ -30,6 +32,7 @@ export function DashboardLayout({
 
   const { logout, user, loading } = useAuth();
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showAddBookModal, setShowAddBookModal] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -250,6 +253,18 @@ export function DashboardLayout({
             {/* Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
+                onClick={() => setShowAddBookModal(true)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                  darkMode
+                    ? "bg-slate-800/60 text-gray-300 hover:bg-slate-700"
+                    : "bg-white/60 text-gray-700 hover:bg-white"
+                }`}
+              >
+                <BookPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Ном нэмэх</span>
+              </button>
+
+              <button
                 onClick={() => setDarkMode(!darkMode)}
                 className={`p-2 rounded-xl transition-all ${
                   darkMode
@@ -310,6 +325,11 @@ export function DashboardLayout({
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         darkMode={darkMode}
+      />
+
+      <AddBookModal
+        isOpen={showAddBookModal}
+        onClose={() => setShowAddBookModal(false)}
       />
     </div>
   );

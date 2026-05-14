@@ -75,6 +75,17 @@ export const summaryByTitleSchema = z.object({
   title: safeText(1, 300),
 })
 
+// ── Books ───────────────────────────────────────────────────────────────────
+export const createManualBookSchema = z.object({
+  title:       safeText(1, 300),
+  authors:     z.array(safeText(1, 120)).max(10).optional().default([]),
+  description: z.string().max(10_000).optional().transform(s => s?.trim() ?? ""),
+  categories:  z.array(safeText(1, 80)).max(8).optional().default([]),
+  language:    z.string().min(2).max(20).optional().default("mn").transform(s => s.trim()),
+  published:   z.string().max(40).optional().nullable(),
+  cover:       z.string().max(7_000_000).optional().nullable(),
+})
+
 // ── Translation ───────────────────────────────────────────────────────────────
 export const translateSchema = z.object({
   text:       z.string().min(1).max(10_000),

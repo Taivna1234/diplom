@@ -5,6 +5,15 @@ import { ActivityService } from "../activity/activity.service";
 const translationService = new TranslationService();
 
 export class BooksController {
+  static async createManual(req: Request, res: Response) {
+    try {
+      const book = await BooksService.createManualBook(req.body);
+      res.status(201).json(book);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to create book" });
+    }
+  }
 
   static async search(req: Request, res: Response) {
     try {

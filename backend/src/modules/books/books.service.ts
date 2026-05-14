@@ -1,4 +1,5 @@
 import axios from "axios"
+import { randomUUID } from "crypto"
 import { env } from "../../config/env"
 import { TranslationService } from "../translation/translation.service"
 import { PrismaClient } from "@prisma/client"
@@ -11,6 +12,64 @@ function stripHtml(html: string): string {
 }
 
 export class BooksService {
+  static async createManualBook(data: {
+    title: string
+    authors?: string[]
+    description?: string
+    categories?: string[]
+    language?: string
+    published?: string | null
+    cover?: string | null
+  }) {
+    const externalId = `manual-${randomUUID()}`
+    const publishedDate = data.published ? new Date(data.published) : null
+
+    const bookRecord = await prisma.book.create({
+      data: {
+        externalId,
+        title: data.title,
+        description: data.description || "",
+        thumbnailUrl: data.cover || "",
+        language: data.language || "mn",
+        publishedDate: publishedDate && !Number.isNaN(publishedDate.getTime()) ? publishedDate : null,
+        detailFetched: true,
+      },
+    })
+
+    const authorNames = [...new Set(data.authors ?? [])]
+    const categoryNames = [...new Set(data.categories ?? [])]
+
+    for (const name of authorNames) {
+      let author = await prisma.author.findFirst({ where: { name } })
+      if (!author) {
+        author = await prisma.author.create({ data: { name } })
+      }
+      await prisma.bookAuthor.create({
+        data: { bookId: bookRecord.id, authorId: author.id },
+      })
+    }
+
+    for (const name of categoryNames) {
+      const category = await prisma.category.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      })
+      await prisma.bookCategory.create({
+        data: { bookId: bookRecord.id, categoryId: category.id },
+      })
+    }
+
+    return {
+      id: externalId,
+      title: data.title,
+      authors: authorNames,
+      description: data.description || "",
+      categories: categoryNames,
+      published: data.published || "",
+      cover: data.cover || "",
+    }
+  }
 
   static async searchBooks(query: string) {
     let searchQuery = query
