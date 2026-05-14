@@ -11,6 +11,19 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 }
 
+function formatCachedBook(book: any) {
+  return {
+    id: book.externalId,
+    title: book.title,
+    authors: book.authors?.map((ba: any) => ba.author.name) ?? [],
+    description: book.description || "",
+    categories: book.categories?.map((bc: any) => bc.category.name) ?? [],
+    pages: 0,
+    published: book.publishedDate,
+    cover: book.thumbnailUrl,
+  }
+}
+
 export class BooksService {
   static async createManualBook(data: {
     title: string
@@ -82,78 +95,95 @@ export class BooksService {
       }
     }
 
-    let cached = await prisma.$queryRaw<any[]>`
-      SELECT * FROM "Book"
+    const cachedRanked = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Book"
       WHERE "externalId" IS NOT NULL
-        AND to_tsvector('english', COALESCE(title, ''))
-            @@ plainto_tsquery('english', ${searchQuery})
+        AND (
+          to_tsvector('simple', COALESCE(title, ''))
+            @@ plainto_tsquery('simple', ${searchQuery})
+          OR title ILIKE ${`%${query}%`}
+          OR title ILIKE ${`%${searchQuery}%`}
+        )
       ORDER BY ts_rank(
-        to_tsvector('english', COALESCE(title, '')),
-        plainto_tsquery('english', ${searchQuery})
+        to_tsvector('simple', COALESCE(title, '')),
+        plainto_tsquery('simple', ${searchQuery})
       ) DESC
       LIMIT 10
     `
 
-    if (cached.length === 0) {
-      const words = searchQuery.split(/\s+/).filter((w: string) => w.length > 2)
-      if (words.length > 0) {
-        cached = await prisma.book.findMany({
+    const words = [...new Set([query, searchQuery]
+      .flatMap((value) => value.split(/\s+/))
+      .map((word) => word.trim())
+      .filter((word) => word.length > 2))]
+
+    const cachedFallback = words.length > 0
+      ? await prisma.book.findMany({
           where: {
             externalId: { not: null },
-            OR: words.map((word: string) => ({
+            OR: words.map((word) => ({
               title: { contains: word, mode: "insensitive" as const }
             }))
           },
+          select: { id: true },
           take: 10
-        }) as any[]
-      }
-    }
-
-    const isCyrillic = (text: string) => /[\u0400-\u04FF]/.test(text)
-    const maybeTranslate = async (text: string) =>
-      isCyrillic(text) ? text : translationService.translate(text, "mn").catch(() => text)
-
-    if (cached.length > 0) {
-      const valid = cached.filter(b => b.externalId)
-      const translated = await Promise.all(
-        valid.map(async (book) => {
-          const [title, description] = await Promise.all([
-            maybeTranslate(book.title),
-            book.description ? maybeTranslate(book.description) : Promise.resolve("")
-          ])
-          return {
-            id: book.externalId,
-            title,
-            authors: [],
-            description,
-            categories: [],
-            pages: 0,
-            published: book.publishedDate,
-            cover: book.thumbnailUrl
-          }
         })
-      )
-      if (translated.length > 0) return translated
-    }
+      : []
 
-    // Call Google API
-    const res = await axios.get(
-      "https://www.googleapis.com/books/v1/volumes",
-      {
-        params: {
-          q: searchQuery,
-          maxResults: 10,
-          key: env.GOOGLE_BOOKS_API_KEY
-        }
-      }
+    const cachedIds = [...new Set([
+      ...cachedRanked.map((book) => book.id),
+      ...cachedFallback.map((book) => book.id),
+    ])]
+
+    const cached = cachedIds.length > 0
+      ? await prisma.book.findMany({
+          where: { id: { in: cachedIds } },
+          include: {
+            authors: { include: { author: true } },
+            categories: { include: { category: true } },
+          },
+        })
+      : []
+
+    const cachedById = new Map(cached.map((book) => [book.id, book]))
+    const cachedBooks = cachedIds
+      .map((id) => cachedById.get(id))
+      .filter(Boolean)
+      .map(formatCachedBook)
+
+    const results = [...cachedBooks]
+    const seenExternalIds = new Set(results.map((book) => book.id))
+
+    const hasStrongManualMatch = results.some((book) =>
+      book.id?.startsWith("manual-") &&
+      book.title.toLowerCase().includes(query.toLowerCase())
     )
 
-    const items = res.data.items || []
-    const books = []
+    if (hasStrongManualMatch && results.length >= 10) {
+      return results.slice(0, 10)
+    }
+
+    let items: any[] = []
+    try {
+      const res = await axios.get(
+        "https://www.googleapis.com/books/v1/volumes",
+        {
+          params: {
+            q: searchQuery,
+            maxResults: 10,
+            key: env.GOOGLE_BOOKS_API_KEY
+          }
+        }
+      )
+      items = res.data.items || []
+    } catch (error) {
+      console.error("Google Books search failed:", error)
+      return results.slice(0, 10)
+    }
 
     for (const item of items) {
       const volume = item.volumeInfo
       if (!volume?.title) continue
+      if (seenExternalIds.has(item.id)) continue
 
       await prisma.book.upsert({
         where: { externalId: item.id },
@@ -175,7 +205,7 @@ export class BooksService {
         if (description) description = await translationService.translate(description, "mn")
       } catch {}
 
-      books.push({
+      results.push({
         id: item.id,
         title,
         authors: volume.authors || [],
@@ -185,9 +215,10 @@ export class BooksService {
         published: volume.publishedDate || "",
         cover: volume.imageLinks?.thumbnail || ""
       })
+      seenExternalIds.add(item.id)
     }
 
-    return books
+    return results.slice(0, 10)
   }
 
   static async getBookById(id: string) {
