@@ -1,5 +1,16 @@
 import { Request, Response } from "express"
 import { AIService } from "./ai.service"
+import { AIProviderError } from "../../utils/gemini"
+
+function handleAIError(res: Response, error: unknown, fallback: string) {
+  console.error(error)
+
+  if (error instanceof AIProviderError) {
+    return res.status(error.statusCode).json({ message: error.message })
+  }
+
+  return res.status(500).json({ message: fallback })
+}
 
 export class AIController {
 
@@ -14,8 +25,7 @@ export class AIController {
       res.json({ summary })
 
     } catch (error) {
-      console.error(error)
-      res.status(500).json({ message: "Failed to generate summary" })
+      return handleAIError(res, error, "Failed to generate summary")
     }
 
   }
@@ -25,8 +35,7 @@ export class AIController {
       const summary = await AIService.getSummaryByTitle(title)
       res.json({ summary })
     } catch (error) {
-      console.error(error)
-      res.status(500).json({ message: "Failed to generate summary" })
+      return handleAIError(res, error, "Failed to generate summary")
     }
   }
 
@@ -45,8 +54,7 @@ static async askQuestion(req: Request, res: Response) {
     res.json({ answer })
 
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: "Failed to generate answer" })
+    return handleAIError(res, error, "Failed to generate answer")
   }
 }
 
