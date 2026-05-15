@@ -1,5 +1,6 @@
 import { PrismaClient, ActivityType } from "@prisma/client"
 import { Matrix, SVD } from "ml-matrix"
+import { bookDedupeKey } from "../../utils/bookDedupe"
 
 const prisma = new PrismaClient()
 
@@ -8,6 +9,27 @@ const ACTIVITY_WEIGHTS: Record<ActivityType, number> = {
   POST_LIKE: 2,
   AI_QUESTION: 3,
   LISTING_CREATE: 5,
+}
+
+type BookWithAuthors = {
+  id: string
+  title: string
+  authors?: { author: { name: string } }[]
+}
+
+function dedupeRecommendationBooks<T extends BookWithAuthors>(books: T[]) {
+  const seen = new Set<string>()
+
+  return books.filter((book) => {
+    const key = bookDedupeKey({
+      title: book.title,
+      authors: book.authors?.map((ba) => ba.author.name) ?? [],
+    })
+    if (!key || key === "::") return true
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 export class RecommendationService {
@@ -44,10 +66,15 @@ export class RecommendationService {
     const books = await prisma.book.findMany({
       where: {
         id: { in: bookIds }
-      }
+      },
+      include: {
+        authors: { include: { author: true } },
+      },
     })
 
-    return books
+    const bookMap = new Map(books.map(b => [b.id, b]))
+    const ordered = bookIds.map(id => bookMap.get(id)).filter(Boolean) as typeof books
+    return dedupeRecommendationBooks(ordered)
   }
   static async getPersonalRecommendations(userId: string, numRecommendations = 10) {
 
@@ -117,11 +144,15 @@ export class RecommendationService {
     if (topBookIds.length === 0) return []
 
     const books = await prisma.book.findMany({
-      where: { id: { in: topBookIds } }
+      where: { id: { in: topBookIds } },
+      include: {
+        authors: { include: { author: true } },
+      },
     })
 
     const bookMap = new Map(books.map(b => [b.id, b]))
-    return topBookIds.map(id => bookMap.get(id)).filter(Boolean)
+    const ordered = topBookIds.map(id => bookMap.get(id)).filter(Boolean) as typeof books
+    return dedupeRecommendationBooks(ordered).slice(0, numRecommendations)
   }
 
 }

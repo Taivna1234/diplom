@@ -3,6 +3,7 @@ import { randomUUID } from "crypto"
 import { env } from "../../config/env"
 import { TranslationService } from "../translation/translation.service"
 import { PrismaClient } from "@prisma/client"
+import { bookDedupeKey, dedupeBooksByTitleAndAuthors } from "../../utils/bookDedupe"
 
 const prisma = new PrismaClient()
 const translationService = new TranslationService()
@@ -152,6 +153,7 @@ export class BooksService {
 
     const results = [...cachedBooks]
     const seenExternalIds = new Set(results.map((book) => book.id))
+    const seenBookKeys = new Set(results.map(bookDedupeKey))
 
     const hasStrongManualMatch = results.some((book) =>
       book.id?.startsWith("manual-") &&
@@ -184,6 +186,11 @@ export class BooksService {
       const volume = item.volumeInfo
       if (!volume?.title) continue
       if (seenExternalIds.has(item.id)) continue
+      const googleBookKey = bookDedupeKey({
+        title: volume.title,
+        authors: volume.authors || [],
+      })
+      if (seenBookKeys.has(googleBookKey)) continue
 
       await prisma.book.upsert({
         where: { externalId: item.id },
@@ -216,9 +223,10 @@ export class BooksService {
         cover: volume.imageLinks?.thumbnail || ""
       })
       seenExternalIds.add(item.id)
+      seenBookKeys.add(googleBookKey)
     }
 
-    return results.slice(0, 10)
+    return dedupeBooksByTitleAndAuthors(results).slice(0, 10)
   }
 
   static async getBookById(id: string) {
